@@ -1,16 +1,19 @@
-FROM openjdk:8-jre
+# Build image
+FROM maven:3-jdk-8 as build
 
 WORKDIR /app
 
-# This should be cleaned up to not include source in container.
-# Would split into separate build and execute steps and copy jar
-# from build to execute
-#COPY pom.xml .
-#COPY src .
-#RUN mvn clean compile assembly:single
+COPY pom.xml .
+COPY src src
+RUN mvn clean compile assembly:single
 
-# Was having issues building in the container so decided to copy jar for simplicity
-# Be sure to run "mvn clean compile assembly:single" beforehand
-COPY target/challenge-part1-1.0-SNAPSHOT-jar-with-dependencies.jar .
+# Execute image
+FROM openjdk:8-jre as app
 
-CMD java -jar challenge-part1-1.0-SNAPSHOT-jar-with-dependencies.jar
+WORKDIR /app
+
+# Copy jar from build image. Copy it to a new name without version info so that we can
+# pass it as a parameter when running the program without relying on wildcard expansion.
+COPY --from=build /app/target/challenge-part1-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
+
+CMD java -jar app.jar
